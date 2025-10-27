@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live Parade Script</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: "Arial", sans-serif;
+    font-size: 2.2rem;
+    line-height: 1.4;
+    overflow: hidden;
+  }
+  #container {
+    height: 100vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    padding: 3rem;
+  }
+  .entry {
+    margin-bottom: 3rem;
+    padding: 1rem;
+    border-left: 6px solid transparent;
+    transition: border-color 0.5s ease;
+  }
+  .entry.active {
+    border-color: #ffcc00;
+    background: rgba(255, 204, 0, 0.1);
+  }
+  h2 {
+    color: #ffcc00;
+    margin: 0 0 0.5rem 0;
+    font-size: 2.4rem;
+  }
+  p {
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+
+<script>
+const FEED_URL = "https://script.google.com/macros/s/AKfycbyVbVTqS-dShFZiz1dVZUfypge1RGys8PZ11eb0cH5TIi6wdqAUsGsH7cSMF9xvBBfx/exec";
+
+let entries = [];
+let currentIndex = 0;
+
+// Fetch and refresh the feed
+async function loadScript() {
+  try {
+    const res = await fetch(FEED_URL + "?t=" + Date.now()); // prevent caching
+    entries = await res.json();
+    renderEntries();
+  } catch (e) {
+    console.error("Failed to fetch:", e);
+  }
+}
+
+// Render entries into the container
+function renderEntries() {
+  const container = document.getElementById("container");
+  container.innerHTML = entries.map((e, i) => `
+    <div class="entry" id="entry-${i}">
+      <h2>${e.number}. ${e.organization}</h2>
+      <p>${e.description}</p>
+    </div>
+  `).join("");
+  highlightCurrent();
+}
+
+// Highlight current entry and auto-scroll
+function highlightCurrent() {
+  const all = document.querySelectorAll(".entry");
+  all.forEach(el => el.classList.remove("active"));
+  const current = all[currentIndex];
+  if (!current) return;
+  current.classList.add("active");
+  current.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// Automatically advance every 20 seconds (adjust as needed)
+function autoAdvance() {
+  if (entries.length === 0) return;
+  currentIndex = (currentIndex + 1) % entries.length;
+  highlightCurrent();
+}
+
+// Refresh data every 15 seconds
+setInterval(loadScript, 15000);
+
+// Scroll to next entry every 20 seconds
+setInterval(autoAdvance, 20000);
+
+// Initial load
+loadScript();
+</script>
+</body>
+</html>
