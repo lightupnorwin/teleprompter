@@ -53,9 +53,16 @@ async function loadScript() {
   try {
     const res = await fetch(FEED_URL + "?t=" + Date.now()); // prevent caching
     entries = await res.json();
+
+    if (!entries || entries.length === 0) {
+      showNoDataMessage();
+      return;
+    }
+
     renderEntries();
   } catch (e) {
     console.error("Failed to fetch:", e);
+    showNoDataMessage();
   }
 }
 
@@ -69,6 +76,19 @@ function renderEntries() {
     </div>
   `).join("");
   highlightCurrent();
+}
+
+// Show friendly “waiting” message
+function showNoDataMessage() {
+  const container = document.getElementById("container");
+  container.innerHTML = `
+    <div style="text-align:center; margin-top:40vh;">
+      <h2 style="color:#ffcc00;">Waiting for parade lineup...</h2>
+      <p style="font-size:1.5rem; color:#ccc;">
+        The live announcer feed will appear here as soon as the first group checks in.
+      </p>
+    </div>
+  `;
 }
 
 // Highlight current entry and auto-scroll
@@ -97,5 +117,9 @@ setInterval(autoAdvance, 20000);
 // Initial load
 loadScript();
 </script>
+
+
 </body>
 </html>
+
+
