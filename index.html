@@ -11,13 +11,15 @@
     font-family: "Arial", sans-serif;
     font-size: 2.2rem;
     line-height: 1.4;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
   }
   #container {
-    height: 100vh;
+    flex: 1;
     overflow-y: auto;
     scroll-behavior: smooth;
-    padding: 3rem;
+    padding: 2rem 3rem;
   }
   .entry {
     margin-bottom: 3rem;
@@ -25,9 +27,13 @@
     border-left: 6px solid transparent;
     transition: border-color 0.5s ease;
   }
-  .entry.active {
+  .entry.current {
     border-color: #ffcc00;
     background: rgba(255, 204, 0, 0.1);
+  }
+  .entry.next {
+    border-color: #666;
+    background: rgba(255, 255, 255, 0.05);
   }
   h2 {
     color: #ffcc00;
@@ -37,28 +43,53 @@
   p {
     margin: 0;
   }
+  #controls {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem 0;
+    border-top: 2px solid #333;
+  }
+  button {
+    font-size: 1.4rem;
+    background: #333;
+    color: #ffcc00;
+    border: none;
+    padding: 0.8rem 1.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #555;
+  }
 </style>
 </head>
 <body>
+
 <div id="container"></div>
 
+<div id="controls">
+  <button id="prevBtn">⬅ Previous</button>
+  <button id="nextBtn">Next ➡</button>
+</div>
+
 <script>
-const FEED_URL = "https://script.google.com/macros/s/AKfycbwHF1w0AOAsNW5okHOkXlldzaOotx7udEHtuVwdLhT1pHSlHPLZSrB22TOeh1oiqE44/exec";
+const FEED_URL =
+  "https://script.google.com/macros/s/AKfycbwHF1w0AOAsNW5okHOkXlldzaOotx7udEHtuVwdLhT1pHSlHPLZSrB22TOeh1oiqE44/exec";
 
 let entries = [];
 let currentIndex = 0;
 
-// Fetch and refresh the feed
+// Fetch the JSON feed
 async function loadScript() {
   try {
-    const res = await fetch(FEED_URL + "?t=" + Date.now()); // prevent caching
+    const res = await fetch(FEED_URL + "?t=" + Date.now());
     entries = await res.json();
-
     if (!entries || entries.length === 0) {
       showNoDataMessage();
       return;
     }
-
     renderEntries();
   } catch (e) {
     console.error("Failed to fetch:", e);
@@ -66,60 +97,59 @@ async function loadScript() {
   }
 }
 
-// Render entries into the container
+// Render the current + next entry
 function renderEntries() {
   const container = document.getElementById("container");
-  container.innerHTML = entries.map((e, i) => `
-    <div class="entry" id="entry-${i}">
-      <h2>${e.number}. ${e.organization}</h2>
-      <p>${e.description}</p>
-    </div>
-  `).join("");
-  highlightCurrent();
+  const current = entries[currentIndex];
+  const next = entries[currentIndex + 1];
+
+  let html = "";
+  if (current) {
+    html += `
+      <div class="entry current">
+        <h2>${current.number}. ${current.organization}</h2>
+        <p>${current.description}</p>
+      </div>`;
+  }
+  if (next) {
+    html += `
+      <div class="entry next">
+        <h2>Next: ${next.number}. ${next.organization}</h2>
+        <p>${next.description}</p>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+  container.scrollTop = 0;
 }
 
-// Show friendly “waiting” message
+// Show placeholder
 function showNoDataMessage() {
-  const container = document.getElementById("container");
-  container.innerHTML = `
+  document.getElementById("container").innerHTML = `
     <div style="text-align:center; margin-top:40vh;">
       <h2 style="color:#ffcc00;">Waiting for parade lineup...</h2>
       <p style="font-size:1.5rem; color:#ccc;">
         The live announcer feed will appear here as soon as the first group checks in.
       </p>
-    </div>
-  `;
+    </div>`;
 }
 
-// Highlight current entry and auto-scroll
-function highlightCurrent() {
-  const all = document.querySelectorAll(".entry");
-  all.forEach(el => el.classList.remove("active"));
-  const current = all[currentIndex];
-  if (!current) return;
-  current.classList.add("active");
-  current.scrollIntoView({ behavior: "smooth", block: "center" });
-}
+// Manual controls
+document.getElementById("nextBtn").addEventListener("click", () => {
+  if (currentIndex < entries.length - 1) currentIndex++;
+  renderEntries();
+});
+document.getElementById("prevBtn").addEventListener("click", () => {
+  if (currentIndex > 0) currentIndex--;
+  renderEntries();
+});
 
-// Automatically advance every 20 seconds (adjust as needed)
-function autoAdvance() {
-  if (entries.length === 0) return;
-  currentIndex = (currentIndex + 1) % entries.length;
-  highlightCurrent();
-}
-
-// Refresh data every 15 seconds
+// Refresh data every 15 s (adjust if needed)
 setInterval(loadScript, 15000);
-
-// Scroll to next entry every 20 seconds
-setInterval(autoAdvance, 20000);
 
 // Initial load
 loadScript();
 </script>
 
-
 </body>
 </html>
-
-
